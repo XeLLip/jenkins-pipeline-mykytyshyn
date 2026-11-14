@@ -1,8 +1,8 @@
 # jenkins-pipeline-mykytyshyn
 
-Лабораторна робота 11 «Jenkins Pipelines», курс «Хмарні технології побудови інформаційних систем».
+Lab 11 "Jenkins Pipelines", course "Cloud Technologies for Building Information Systems".
 
-- `app.py` - простий вебзастосунок на Python (порт 5000)
-- `test_app.py` - unit- та інтеграційний тести (`python -m unittest -v`)
-- `Dockerfile` - образ застосунку
+- `app.py` - a simple Python web application (port 5000)
+- `test_app.py` - unit and integration tests (`python -m unittest -v`)
+- `Dockerfile` - application image
 - `Jenkinsfile` - declarative pipeline: Build, Test, Deploy
