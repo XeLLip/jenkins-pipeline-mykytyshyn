@@ -1,10 +1,11 @@
-// Lab 11. Declarative pipeline: Build -> Test -> Deploy (local)
+// Lab 11. Declarative pipeline: Build -> Test -> Deploy (push to DockerHub + local run)
 pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'mykytyshynapp'
-        APP_PORT   = '5055'              // http://localhost:5055 on the host
+        IMAGE_NAME = 'mykytyshynapp'             // local image and container name
+        HUB_REPO   = 'ymykytyshyn_application'   // repository name on DockerHub
+        APP_PORT   = '5055'                      // http://localhost:5055 on the host
     }
 
     triggers {
@@ -27,8 +28,15 @@ pipeline {
         }
         stage('Deploy') {
             steps {
-                echo 'Deploy stage (local test environment)'
-                sh 'docker images $IMAGE_NAME'
+                echo 'Pushing Docker image to DockerHub...'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh 'docker tag $IMAGE_NAME:$BUILD_NUMBER $DOCKER_USER/$HUB_REPO:$BUILD_NUMBER'
+                    sh 'docker tag $IMAGE_NAME:$BUILD_NUMBER $DOCKER_USER/$HUB_REPO:latest'
+                    sh 'docker push $DOCKER_USER/$HUB_REPO:$BUILD_NUMBER'
+                    sh 'docker push $DOCKER_USER/$HUB_REPO:latest'
+                }
+                echo 'Starting the new version locally (test environment)...'
                 sh '''
                     docker rm -f $IMAGE_NAME 2>/dev/null || true
                     docker run -d --name $IMAGE_NAME -p $APP_PORT:5000 $IMAGE_NAME:$BUILD_NUMBER
@@ -47,7 +55,8 @@ pipeline {
     }
 
     post {
-        success { echo "SUCCESS: ${env.IMAGE_NAME}:${env.BUILD_NUMBER} is running on port ${env.APP_PORT}" }
+        always  { sh 'docker logout || true' }
+        success { echo "SUCCESS: ${env.HUB_REPO}:${env.BUILD_NUMBER} pushed to DockerHub, app is running on port ${env.APP_PORT}" }
         failure { echo 'FAILED: see Console Output' }
     }
 }
